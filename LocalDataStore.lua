@@ -1,6 +1,5 @@
 --[[
-
-	Local Datastore ( V1.0.0 )
+	Local Datastore ( V1.0.1 )
 		
 		Module for replacing Datastore to a local datastore meant to be a replacement for old roblox revivals where
 		datastore does not work.
@@ -10,6 +9,7 @@
 ]]
 
 local LocalDB = {}
+LocalDB.DebugMode = false
 
 if _G.LocalDataStore == nil then
 	_G.LocalDataStore = {}
@@ -21,6 +21,20 @@ local function GetLengthofDictionary( Dictionary )
 		Length += 1
 	end
 	return Length
+end
+
+local function ConsoleLog(LogType, LogContent)
+	if LocalDB.DebugMode then
+		print("LocalDataStore - "..LogType.." - "..LogContent)
+	end
+end
+
+function LocalDB:SetDebugMode( Enabled )
+	if type( Enabled ) == "boolean" then
+		LocalDB.DebugMode = Enabled
+	else
+		error("LocalDB SetDebugMode - Argument needs to be a boolean")
+	end
 end
 
 function LocalDB:GetDataStore( DatastoreName )
@@ -35,6 +49,7 @@ function LocalDB:GetDataStore( DatastoreName )
 		--[[
 			Gets data from requested Datastore, returns nil if there is no data
 		]]
+		ConsoleLog(DatastoreName.."/Datastore/GetAsync","GET Request for "..DatastoreName.." [ "..DataKey.." ]")
 		return _G.LocalDataStore[tostring(DatastoreName)][DataKey]
 	end
 
@@ -42,6 +57,7 @@ function LocalDB:GetDataStore( DatastoreName )
 		--[[
 			Sets data to targeted Datastore, does not return anything
 		]]
+		ConsoleLog(DatastoreName.."/Datastore/SetAsync","SET Request for "..DatastoreName.." [ "..DataKey.." ] / Content / "..tostring(Data))
 		_G.LocalDataStore[tostring(DatastoreName)][DataKey] = Data
 	end
 
@@ -53,10 +69,15 @@ function LocalDB:GetDataStore( DatastoreName )
 		local NewData = transformFunction(PreviousData)
 
 		if NewData ~= nil then
+			ConsoleLog(DatastoreName.."/Datastore/UpdateAsync","UPDATE Request passed for "..DatastoreName.." [ "..DataKey.." ] / Content / "..tostring(NewData))
 			_G.LocalDataStore[tostring(DatastoreName)][DataKey] = NewData
+		else
+			ConsoleLog(DatastoreName.."/Datastore/UpdateAsync","UPDATE Request failed for "..DatastoreName.." [ "..DataKey.." ] / transformFunction returned nil")
 		end
 	end
-
+	
+	ConsoleLog("Datastore","Returned datastore for "..DatastoreName)
+	
 	return Datastore
 end
 
@@ -110,9 +131,13 @@ function LocalDB:GetOrderedDataStore( DatastoreName )
 				local CurrentKeyIndex = pagesize * PageCount
 				if DataLength > CurrentKeyIndex then
 					PageCount += 1
+					ConsoleLog(tostring(DatastoreName).."/OrderedDatastore/GetSortedAsync/DatastorePages/AdvanceToNextPageAsync","Successfully advanced to page "..tostring(PageCount))
 				else
 					DataStorePages.IsFinished = true
+					ConsoleLog(tostring(DatastoreName).."/OrderedDatastore/GetSortedAsync/DatastorePages/AdvanceToNextPageAsync","Reached last page / "..tostring(PageCount))
 				end
+			else
+				ConsoleLog(tostring(DatastoreName).."/OrderedDatastore/GetSortedAsync/DatastorePages/AdvanceToNextPageAsync","Already reached last page but still being requested to advance")
 			end
 		end
 
@@ -124,17 +149,20 @@ function LocalDB:GetOrderedDataStore( DatastoreName )
 			for index = 1 , pagesize do
 				table.insert(PageData,OrderedData[StartingIndex + (index - 1)])
 			end
-
+			
+			ConsoleLog(tostring(DatastoreName).."/OrderedDatastore/GetSortedAsync/DataStorePages/GetCurrentPage","Requested page "..tostring(PageCount).." / starting index "..tostring(StartingIndex).." / total records returned "..tostring(#PageData))
 			return PageData
 		end
 
 		return DataStorePages
 	end
-
+	
+	ConsoleLog("OrderedDatastore","Returned OrderedDataStore "..DatastoreName)
 	return OrderedDatastore
 end
 
 function LocalDB:GetGlobalDataStore()
+	ConsoleLog("GetGlobalDataStore","Returned global datastore")
 	return LocalDB:GetDataStore("super_awesome_datastore_no_one_would_never_come_up_with_a_datastore_like_this_right?")
 end
 
